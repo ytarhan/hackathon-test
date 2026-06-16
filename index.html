@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Hue — generate beautiful, harmonious color palettes with a single click." />
+  <title>Hue · Palette Generator</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    /* Critical gate CSS — inlined so the app stays hidden even before (or if)
+       styles.css loads. The app is revealed only when <html> has .unlocked. */
+    .topbar,
+    .palette,
+    .footer {
+      display: none !important;
+    }
+    html.unlocked .topbar { display: flex !important; }
+    html.unlocked .palette { display: flex !important; }
+    html.unlocked .footer { display: block !important; }
+    html.unlocked .gate { display: none !important; }
+  </style>
+  <script>
+    // Runs before paint: if already unlocked in this browser, skip the gate
+    // entirely so there's no flash of the password box.
+    try {
+      if (localStorage.getItem("hue-unlocked") === "yes") {
+        document.documentElement.classList.add("unlocked");
+      }
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="gate" id="gate">
+    <form class="gate__box" id="gate-form" autocomplete="off">
+      <span class="gate__dot"></span>
+      <h2 class="gate__title">Hue</h2>
+      <p class="gate__subtitle">Enter the password to continue</p>
+      <input
+        type="password"
+        class="gate__input"
+        id="gate-input"
+        placeholder="Password"
+        aria-label="Password"
+        autofocus
+      />
+      <button type="button" class="gate__btn" id="gate-btn">Unlock</button>
+      <p class="gate__error" id="gate-error" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <script>
+    // Self-contained gate logic — inline so it's attached before any
+    // interaction and never depends on external script timing.
+    // NOTE: a client-side gate only deters casual visitors; the password is
+    // visible in the page source.
+    (function () {
+      var PASSWORD = "preview2026";
+      var form = document.getElementById("gate-form");
+      var input = document.getElementById("gate-input");
+      var btn = document.getElementById("gate-btn");
+      var error = document.getElementById("gate-error");
+      var box = form.querySelector(".gate__box");
+
+      function attempt() {
+        if (input.value === PASSWORD) {
+          try { localStorage.setItem("hue-unlocked", "yes"); } catch (e) {}
+          document.documentElement.classList.add("unlocked");
+        } else {
+          error.textContent = "That's not quite right — try again.";
+          error.classList.add("gate__error--show");
+          box.classList.remove("gate__box--shake");
+          void box.offsetWidth; // restart the shake animation
+          box.classList.add("gate__box--shake");
+          input.select();
+        }
+      }
+
+      btn.addEventListener("click", attempt);
+      // Enter key submits the lone-input form; prevent the native reload.
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        attempt();
+      });
+      input.addEventListener("input", function () {
+        error.classList.remove("gate__error--show");
+      });
+    })();
+  </script>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <h1>Hue</h1>
+    </div>
+    <div class="controls">
+      <div class="scheme-select" id="scheme-select">
+        <button class="scheme-btn active" data-scheme="auto">Surprise me</button>
+        <button class="scheme-btn" data-scheme="analogous">Analogous</button>
+        <button class="scheme-btn" data-scheme="complementary">Complementary</button>
+        <button class="scheme-btn" data-scheme="triadic">Triadic</button>
+        <button class="scheme-btn" data-scheme="monochrome">Monochrome</button>
+      </div>
+      <button class="generate-btn" id="generate-btn">
+        <span class="generate-btn__icon">✦</span>
+        Generate
+        <kbd>space</kbd>
+      </button>
+    </div>
+  </header>
+
+  <main class="palette" id="palette"></main>
+
+  <footer class="footer">
+    <span>Tap a swatch to copy · Click the lock to keep a color · Hit <kbd>space</kbd> to shuffle</span>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
